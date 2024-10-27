@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "OnionCrawler.Console": {
+      "commandName": "Project",
+      "commandLineArgs": " -r http://s4k4ceiapwwgcm3mkb6e4diqecpo7kvdnfr5gg7sph7jjppqkvwwqtyd.onion/ -t 15 -C -f helooooo.txt"
+    }
+  }
+}

@@ -1,0 +1,188 @@
+﻿@using static OnionCrawler.Lib.Common
+@rendermode InteractiveServer
+@inject IJSRuntime JS
+@page "/"
+
+<PageTitle>Home</PageTitle>
+@code {
+    OnionCrawler.Lib.Crawler? crawler;
+
+    private List<OnionCrawler.Lib.Models.WebPage> webPages = new();
+    private List<OnionCrawler.Lib.Models.QueuedLink> progressingLinks = new();
+    private int QueuedLinkCount { get; set; } = 0;
+    private int FailedLinkCount { get; set; } = 0;
+    public bool IsCrawling { get; set; } = false;
+    public bool IsFinished { get; set; } = false;
+
+    private string initialUrl = String.Empty;
+
+    private void OnValidSubmission(OnionCrawler.Lib.CrawlerOptions options)
+    {
+        crawler = new();
+        crawler.Configure(o =>
+        {
+            o.MaxInQueue = options.MaxInQueue;
+            o.MaxRetry = options.MaxRetry;
+            o.MaxDepth = options.MaxDepth;
+            o.MaxPages = options.MaxPages;
+            o.MaxThreads = options.MaxThreads;
+            o.IncludeClearnet = options.IncludeClearnet;
+            o.IncludeI2P = options.IncludeI2P;
+            o.IncludeOnion = options.IncludeOnion;
+            o.IncludeIP = options.IncludeIP;
+            o.Timeout = options.Timeout;
+            o.BatchSize = options.BatchSize;
+            o.PagesSavePath = options.PagesSavePath;
+            o.FailedLinksSavePath = options.FailedLinksSavePath;
+        });
+
+        crawler.OnQueued += (sender, args) =>
+        {
+            QueuedLinkCount += args.Count;
+        };
+
+        crawler.OnProcessing += (sender, args) =>
+        {
+            progressingLinks.Add(args);
+            QueuedLinkCount--;
+        };
+
+        crawler.OnHttpError += (sender, args) =>
+        {
+            progressingLinks.RemoveAll(p => p.Url == args.Url);
+            FailedLinkCount++;
+        };
+
+        crawler.OnPageFetched += (sender, args) =>
+        {
+            webPages.Add(args);
+            progressingLinks.RemoveAll(p => p.Url == args.Url);
+            this.InvokeAsync(() => this.StateHasChanged());
+        };
+
+        crawler.OnCrawlingFinished += (sender, args) =>
+        {
+            IsFinished = true;
+            IsCrawling = false;
+            this.InvokeAsync(() => this.StateHasChanged());
+        };
+
+        crawler.OnFailed += (sender, args) =>
+        {
+            progressingLinks.RemoveAll(p => p.Url == args.Url);
+            this.InvokeAsync(() => this.StateHasChanged());
+            FailedLinkCount++;
+        };
+
+    }
+
+    private void ToggleCrawler()
+    {
+        if (crawler != null)
+        {
+            if (IsCrawling)
+            {
+                crawler.Stop();
+                IsCrawling = false;
+            }
+            else
+            {
+                IsCrawling = true;
+                IsFinished = false;
+                webPages.Clear();
+                progressingLinks.Clear();
+                FailedLinkCount = 0;
+                QueuedLinkCount = 0;
+                crawler.Crawl(initialUrl);
+            }
+        }
+
+    }
+
+    private void Refresh()
+    {
+        StateHasChanged();
+    }
+
+    private async Task DownloadWebpages()
+    {
+        var content = webPages.ToCsv();
+        await JS.InvokeVoidAsync("downloadFile", "wabpages.csv", content.ToString());
+    } 
+    private async Task DownloadQueue()
+    {
+        var content = crawler?._queue.ToCsv() ?? new();
+        await JS.InvokeVoidAsync("downloadFile", "queue.csv", content.ToString());
+    }
+    private async Task DownloadExternalLinks()
+    {
+        var content = crawler?.ExternalLinks.ToCsv() ?? new();
+        await JS.InvokeVoidAsync("downloadFile", "external.csv", content.ToString());
+    }
+    private async Task DownloadFailedLinks()
+    {
+        var content = crawler?.Failed.ToCsv() ?? new();
+        await JS.InvokeVoidAsync("downloadFile", "failed.csv", content.ToString());
+    }
+}
+<div>
+
+    <CrawlerOptions OnValidSubmission="OnValidSubmission" />
+
+    <div class="card my-3">
+        <div class="card-header">
+            <h3>Root Url</h3>
+        </div>
+        <div class="card-body">
+
+            <div class="row mb-3">
+                <div class="col-md-12">
+                    <label>Root Onion URL:</label>
+                    <InputText class="form-control" @bind-Value="initialUrl" disabled="@(crawler == null || IsCrawling)" />
+                </div>
+            </div>
+
+            <div class="text-center w-100" disabled="@(crawler == null)">
+                <button type="submit" class="btn btn-primary mt-3 w-auto" @onclick="ToggleCrawler" disabled="@(crawler == null)">@(IsCrawling ? "Stop Crawling" : "Crawl")</button>
+                <button type="submit" class="btn btn-primary mt-3 w-auto" @onclick="Refresh" disabled="@(!IsCrawling)">Refresh</button>
+                <button type="submit" class="btn btn-primary mt-3 w-auto" @onclick="DownloadWebpages" disabled="@(IsCrawling || !IsFinished || crawler == null)">Download Webpages</button>
+                <button type="submit" class="btn btn-primary mt-3 w-auto" @onclick="DownloadQueue" disabled="@(IsCrawling || !IsFinished || crawler == null)">Download Queue</button>
+                <button type="submit" class="btn btn-primary mt-3 w-auto" @onclick="DownloadExternalLinks" disabled="@(IsCrawling || !IsFinished || crawler == null)">Download External Links</button>
+                <button type="submit" class="btn btn-primary mt-3 w-auto" @onclick="DownloadFailedLinks" disabled="@(IsCrawling || !IsFinished || crawler == null)">Download Failed</button>
+            </div>
+
+        </div>
+    </div>
+
+
+    <div class="card my-3">
+        <div class="card-header">
+            <h3>Processing Links:</h3>
+        </div>
+        <div class="card-body">
+            <QueuedLinkList DataList="progressingLinks" />
+        </div>
+    </div>
+    <div class="card my-3">
+        <div class="card-header">
+            <h3>Fetched WebPages:</h3>
+        </div>
+        <div class="card-body">
+            <WebPageList DataList="webPages" />
+        </div>
+    </div>
+
+
+</div>
+
+<script>
+    function downloadFile(filename, content) {
+        const element = document.createElement('a');
+        const file = new Blob([content], { type: 'text/plain' });
+        element.href = URL.createObjectURL(file);
+        element.download = filename;
+        document.body.appendChild(element);
+        element.click();
+        document.body.removeChild(element);
+    }
+</script>

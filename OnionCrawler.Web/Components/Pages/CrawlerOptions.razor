@@ -1,0 +1,115 @@
+﻿@rendermode InteractiveServer
+@page "/crawler-options"
+
+@code {
+    private OnionCrawler.Lib.CrawlerOptions Options = new();
+    [Parameter]
+    public EventCallback<OnionCrawler.Lib.CrawlerOptions> OnValidSubmission { get; set; }
+
+    private int timeoutSeconds = 30;
+    private List<string> Errors = new();
+
+    private void OnSubmit()
+    {
+        Options.Timeout = TimeSpan.FromSeconds(timeoutSeconds);
+        Options.ValidationErrors(out Errors);
+        if (!Errors.Any())
+        {
+            OnValidSubmission.InvokeAsync(Options);
+        }
+    }
+}
+
+
+@if (Errors.Any())
+{
+    <div class="alert alert-danger">
+        <h4>Errors:</h4>
+        <ul>
+            @foreach (var error in Errors)
+            {
+                <li>@error</li>
+            }
+        </ul>
+    </div>
+}
+
+<div class="card">
+    <div class="card-header">
+        <h3>Crawler Options</h3>
+    </div>
+    <div class="card-body">
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <label>Proxy Host (Socks5):</label>
+                <InputText class="form-control" @bind-Value="Options.ProxyHost" />
+            </div>
+            <div class="col-md-6">
+                <label>Proxy Port:</label>
+                <InputNumber class="form-control" @bind-Value="Options.ProxyPort" />
+            </div>
+        </div>
+
+
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <label>Timeout (seconds):</label>
+                <InputNumber class="form-control" @bind-Value="timeoutSeconds" />
+            </div>
+            <div class="col-md-6">
+                <label>Max In Queue:</label>
+                <InputNumber class="form-control" @bind-Value="Options.MaxInQueue" />
+            </div>
+        </div>
+
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <label>Max Retry:</label>
+                <InputNumber class="form-control" @bind-Value="Options.MaxRetry" />
+            </div>
+            <div class="col-md-6">
+                <label>Max Depth:</label>
+                <InputNumber class="form-control" @bind-Value="Options.MaxDepth" />
+            </div>
+        </div>
+
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <label>Max Pages:</label>
+                <InputNumber class="form-control" @bind-Value="Options.MaxPages" />
+            </div>
+            <div class="col-md-6">
+                <label>Max Threads:</label>
+                <InputNumber class="form-control" @bind-Value="Options.MaxThreads" />
+            </div>
+        </div>
+
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <label>Include Clearnet:</label>
+                <InputCheckbox class="form-check-input" @bind-Value="Options.IncludeClearnet" />
+            </div>
+            <div class="col-md-6">
+                <label>Include Onion:</label>
+                <InputCheckbox class="form-check-input" @bind-Value="Options.IncludeOnion" />
+            </div>
+        </div>
+
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <label>Include I2P:</label>
+                <InputCheckbox class="form-check-input" @bind-Value="Options.IncludeI2P" />
+            </div>
+            <div class="col-md-6">
+                <label>Include IP:</label>
+                <InputCheckbox class="form-check-input" @bind-Value="Options.IncludeIP" />
+            </div>
+        </div>
+
+
+
+        <div class="text-center w-100">
+            <button type="submit" class="btn btn-primary mt-3 w-100" @onclick="OnSubmit">Set Crawler Settings</button>
+        </div>
+    </div>
+</div>

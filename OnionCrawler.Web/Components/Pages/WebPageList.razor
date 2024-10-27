@@ -1,0 +1,45 @@
+﻿@rendermode InteractiveServer
+@using OnionCrawler.Lib
+@using Microsoft.AspNetCore.Components
+
+@code {
+    [Parameter]
+    public List<OnionCrawler.Lib.Models.WebPage> DataList { get; set; } = new List<OnionCrawler.Lib.Models.WebPage>();
+}
+
+<table class="table table-striped table-hover table-bordered">
+    <thead>
+        <tr>
+            <th>Title</th>
+            <th>Host</th>
+            <th>URL</th>
+            <th>Description</th>
+            <th>Depth</th>
+            <th>Extracted Links</th>
+            <th>Type</th>
+        </tr>
+    </thead>
+    <tbody>
+        @if (DataList != null && DataList.Any())
+        {
+            @foreach (var item in DataList)
+            {
+                <tr>
+                    <td>@(item.Title)</td>
+                    <td>@(item.Host)</td>
+                    <td>@(item.Url)</td>
+                    <td>@(item.Description)</td>
+                    <td>@(item.Depth)</td>
+                    <td>@(item.ExtractedLinkCount)</td>
+                    <td>@(item.Type)</td>
+                </tr>
+            }
+        }
+        else
+        {
+            <tr>
+                <td colspan="7" class="text-center text-muted">No data available</td>
+            </tr>
+        }
+    </tbody>
+</table>
