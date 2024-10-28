@@ -40,4 +40,4 @@ After compiling the console project it can be used from command-line with follow
 After compilng and running the web server you are good to go (Considering Tor Expert Bundle is running)
 UI Is pretty self-explanatory and easy to use but has limited capabilities compared to Console Interface.
 
-![](https://github.com/OzelTam/OnionCrawler/blob/master/OnionCrawler/webui.gif)
+![](https://github.com/OzelTam/OnionCrawler/blob/main/OnionCrawler/webui.gif)
